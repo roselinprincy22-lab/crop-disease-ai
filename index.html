@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Crop Disease Detection</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+</head>
+
+<body>
+
+<h2>🌿 Crop Disease Detection</h2>
+
+<input type="file" id="imageUpload" accept="image/*" capture="environment"><br><br>
+
+<button onclick="predict()">Detect Disease</button>
+
+<p id="result"></p>
+
+<script>
+let model;
+
+async function loadModel() {
+  const URL = "https://teachablemachine.withgoogle.com/models/29h6ZXfNb/";
+  model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+}
+
+async function predict() {
+  const file = document.getElementById("imageUpload").files[0];
+
+  if (!file) {
+    alert("Upload image first");
+    return;
+  }
+
+  const img = document.createElement("img");
+  img.src = URL.createObjectURL(file);
+
+  await img.decode();
+
+  const prediction = await model.predict(img);
+
+  let highest = prediction[0];
+
+  for (let i = 1; i < prediction.length; i++) {
+    if (prediction[i].probability > highest.probability) {
+      highest = prediction[i];
+    }
+  }
+
+  document.getElementById("result").innerText =
+    "Result: " + highest.className;
+}
+
+loadModel();
+</script>
+
+</body>
+</html>
