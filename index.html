@@ -29,7 +29,7 @@
     async function init() {
         try {
             // This now loads the files directly from your GitHub folder
-            model = await tmImage.load("model.json", "metadata.json");
+            model = await tmImage.load("model[1].json", "metadata[1].json");
             
             document.getElementById("status").innerText = "✅ AI Ready";
             document.getElementById("status").style.color = "green";
