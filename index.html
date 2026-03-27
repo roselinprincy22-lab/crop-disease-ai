@@ -1,81 +1,52 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Crop Disease Detection</title>
-
-  <!-- REQUIRED LIBRARIES -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
-</head>
-
-<body>
-
-<h2>🌿 Crop Disease Detection</h2>
-
-<input type="file" id="imageUpload"><br><br>
-
-<button onclick="predict()">Detect Disease</button>
-
-<p id="result"></p>
-
 <script>
-
 let model;
-const URL = "https://teachablemachine.withgoogle.com/models/G4k3x0Zxd/"; // your model
 
-// LOAD MODEL
+const URL = "https://teachablemachine.withgoogle.com/models/G4k3xOZxd/";
+
 async function loadModel() {
-  try {
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
-
-    model = await tmImage.load(modelURL, metadataURL);
-
-    console.log("✅ Model Loaded Successfully");
-  } catch (error) {
-    console.error("❌ Model load error:", error);
-    alert("Model failed to load. Check internet or link.");
-  }
-}
-
-// RUN WHEN PAGE LOADS
-window.onload = loadModel;
-
-// PREDICT
-async function predict() {
-
-  if (!model) {
-    alert("Still loading model... please wait");
-    return;
-  }
-
-  const file = document.getElementById("imageUpload").files[0];
-
-  if (!file) {
-    alert("Upload image first");
-    return;
-  }
-
-  const img = document.createElement("img");
-  img.src = URL.createObjectURL(file);
-
-  await img.decode();
-
-  const prediction = await model.predict(img);
-
-  let highest = prediction[0];
-
-  for (let i = 1; i < prediction.length; i++) {
-    if (prediction[i].probability > highest.probability) {
-      highest = prediction[i];
+    try {
+        model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+        console.log("Model Loaded Successfully");
+    } catch (error) {
+        alert("Model failed to load. Check internet or link.");
+        console.error(error);
     }
-  }
-
-  document.getElementById("result").innerHTML =
-    "🌿 Disease: " + highest.className;
 }
 
-</script>
+loadModel();
 
-</body>
-</html>
+async function predict() {
+    if (!model) {
+        alert("Model still loading...");
+        return;
+    }
+
+    const fileInput = document.getElementById("imageUpload");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Please upload image");
+        return;
+    }
+
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+
+    img.onload = async function () {
+        const prediction = await model.predict(img);
+
+        let result = "";
+        let maxProb = 0;
+
+        for (let i = 0; i < prediction.length; i++) {
+            if (prediction[i].probability > maxProb) {
+                maxProb = prediction[i].probability;
+                result = prediction[i].className;
+            }
+        }
+
+        document.getElementById("result").innerText = 
+            "Prediction: " + result + " (" + (maxProb * 100).toFixed(2) + "%)";
+    };
+}
+</script>
