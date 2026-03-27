@@ -1,68 +1,114 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Crop Scanner</title>
+    <title>Crop Disease Detection</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <script src="https://cdn.npmmirror.com/package/@teachablemachine/image/0.8.5/dist/teachablemachine-image.min.js"></script>
+    
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: white; }
-        .box { border: 2px solid #4CAF50; border-radius: 15px; padding: 20px; max-width: 400px; margin: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        #preview { width: 100%; border-radius: 10px; margin-top: 10px; display: none; }
-        button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
-        button:disabled { background: #ccc; }
-        #result { margin-top: 20px; font-weight: bold; color: #2e7d32; font-size: 18px; white-space: pre-wrap; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f9f9f9; }
+        .container { background: white; padding: 20px; border-radius: 15px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        #result { margin-top: 20px; white-space: pre-wrap; font-weight: bold; color: #2e7d32; }
+        .loading-text { color: #ff9800; font-style: italic; }
+        button { background-color: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        button:disabled { background-color: #ccc; }
     </style>
 </head>
+
 <body>
 
-<div class="box">
-    <h3 id="status" style="color: #f57c00;">⏳ Loading Local AI Model...</h3>
-    <input type="file" id="imageUpload" accept="image/*" disabled>
-    <img id="preview" src="">
-    <button id="predictBtn" onclick="predict()" disabled>Scan Crop</button>
-    <div id="result"></div>
+<div class="container">
+    <h2>🌿 Crop Disease Detection</h2>
+    <p id="status" class="loading-text">⏳ Loading AI Model...</p>
+
+    <input type="file" id="imageUpload" accept="image/*" disabled><br><br>
+    <button id="predictBtn" onclick="predict()" disabled>Detect Disease</button>
+
+    <h3 id="result"></h3>
+    <img id="preview" style="max-width: 300px; display: none; margin: 20px auto; border-radius: 10px;">
 </div>
 
 <script>
-    let model;
+let model;
+// YOUR TEACHABLE MACHINE LINK
+const URL = "https://teachablemachine.withgoogle.com/models/G4k3x0Zxd/"; 
 
-    async function init() {
-        try {
-            // This now loads the files directly from your GitHub folder
-            model = await tmImage.load("model[1].json", "metadata[1].json");
-            
-            document.getElementById("status").innerText = "✅ AI Ready";
-            document.getElementById("status").style.color = "green";
-            document.getElementById("imageUpload").disabled = false;
-            document.getElementById("predictBtn").disabled = false;
-        } catch (e) {
-            document.getElementById("status").innerText = "❌ Error: Files not found in GitHub";
-            console.error(e);
-        }
-    }
+async function loadModel() {
+    try {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
 
-    document.getElementById("imageUpload").onchange = function(e) {
-        const reader = new FileReader();
-        reader.onload = function() {
-            const img = document.getElementById("preview");
-            img.src = reader.result;
-            img.style.display = "block";
-        }
-        reader.readAsDataURL(e.target.files[0]);
-    }
-
-    async function predict() {
-        const img = document.getElementById("preview");
-        const prediction = await model.predict(img);
+        // Load the model and metadata
+        model = await tmImage.load(modelURL, metadataURL);
         
-        let best = { className: "", probability: 0 };
-        prediction.forEach(p => { if(p.probability > best.probability) best = p; });
+        // Enable UI elements once loaded
+        document.getElementById("status").innerText = "✅ AI Model Ready";
+        document.getElementById("status").style.color = "green";
+        document.getElementById("imageUpload").disabled = false;
+        document.getElementById("predictBtn").disabled = false;
+        
+        console.log("Model Loaded Successfully");
+    } catch (error) {
+        document.getElementById("status").innerText = "❌ Error loading model. Check internet.";
+        console.error(error);
+    }
+}
 
-        document.getElementById("result").innerText = 
-            "Diagnosis: " + best.className + "\nConfidence: " + (best.probability * 100).toFixed(1) + "%";
+// Start loading immediately
+loadModel();
+
+// Show image preview when selected
+document.getElementById("imageUpload").onchange = function(evt) {
+    const [file] = this.files;
+    if (file) {
+        const preview = document.getElementById("preview");
+        preview.src = window.URL.createObjectURL(file);
+        preview.style.display = "block";
+    }
+}
+
+async function predict() {
+    const fileInput = document.getElementById("imageUpload");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("⚠️ Please upload an image first");
+        return;
     }
 
-    init();
+    const img = document.getElementById("preview");
+    const prediction = await model.predict(img);
+
+    let result = "";
+    let maxProb = 0;
+
+    for (let i = 0; i < prediction.length; i++) {
+        if (prediction[i].probability > maxProb) {
+            maxProb = prediction[i].probability;
+            result = prediction[i].className;
+        }
+    }
+
+    // 🌿 FORMATTING THE OUTPUT
+    let output = "Result: " + result + " (" + (maxProb * 100).toFixed(1) + "%)\n";
+
+    // 💊 PESTICIDE LOGIC
+    const diagnosis = result.toLowerCase();
+    if (diagnosis.includes("spot")) {
+        output += "💊 Recommendation: Use Copper Fungicide";
+    } else if (diagnosis.includes("blight")) {
+        output += "💊 Recommendation: Apply Mancozeb or Chlorothalonil";
+    } else if (diagnosis.includes("virus") || diagnosis.includes("mosaic")) {
+        output += "⚠️ Warning: Viral infection. Remove & destroy infected plants.";
+    } else if (diagnosis.includes("pest") || diagnosis.includes("mites")) {
+        output += "💊 Recommendation: Apply Neem Oil or Miticide spray.";
+    } else if (diagnosis.includes("healthy")) {
+        output += "✨ Excellent! Your plant looks healthy.";
+    }
+
+    document.getElementById("result").innerText = output;
+}
 </script>
+
 </body>
 </html>
