@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Crop Guard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #ffffff; padding: 10px; }
+        .card { border: 2px solid #e0e0e0; border-radius: 15px; padding: 20px; max-width: 400px; margin: auto; }
+        #result { font-size: 1.2rem; font-weight: bold; color: #2e7d32; margin-top: 15px; }
+        button { background-color: #6200ee; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button:disabled { background-color: #ccc; }
+        img { max-width: 100%; border-radius: 10px; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h3 id="status">⏳ Loading AI Model...</h3>
+    <input type="file" id="imageUpload" accept="image/*" disabled>
+    <br><br>
+    <img id="preview">
+    <br>
+    <button id="predictBtn" onclick="predict()" disabled>Analyze Crop</button>
+    <div id="result"></div>
+</div>
+
+<script>
+    let model;
+    // Replace this URL with your specific Teachable Machine link if different
+    const URL = "https://teachablemachine.withgoogle.com/models/G4k3x0Zxd/"; 
+
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+        model = await tmImage.load(modelURL, metadataURL);
+        document.getElementById("status").innerText = "🌿 AI Ready: Upload Leaf";
+        document.getElementById("imageUpload").disabled = false;
+        document.getElementById("predictBtn").disabled = false;
+    }
+
+    document.getElementById("imageUpload").onchange = function(e) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            const img = document.getElementById("preview");
+            img.src = reader.result;
+            img.style.display = "block";
+        }
+        reader.readAsDataURL(e.target.files[0]);
+    }
+
+    async function predict() {
+        const img = document.getElementById("preview");
+        const prediction = await model.predict(img);
+        
+        let bestMatch = { className: "", probability: 0 };
+        prediction.forEach(p => {
+            if (p.probability > bestMatch.probability) bestMatch = p;
+        });
+
+        document.getElementById("result").innerHTML = 
+            `Result: ${bestMatch.className}<br>Confidence: ${(bestMatch.probability * 100).toFixed(1)}%`;
+    }
+
+    init();
+</script>
+</body>
+</html>
