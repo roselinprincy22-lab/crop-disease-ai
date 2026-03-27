@@ -1,40 +1,35 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Crop Disease Detection</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
-</head>
-
-<body>
-
-<h2>🌿 Crop Disease Detection</h2>
-
-<input type="file" id="imageUpload" accept="image/*" capture="environment"><br><br>
-
-<button onclick="predict()">Detect Disease</button>
-
-<p id="result"></p>
-
 <script>
 let model;
 
+// ✅ LOAD MODEL
 async function loadModel() {
-  const URL = "https://teachablemachine.withgoogle.com/models/29h6ZXFNb/";
-  model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+  const URL = "https://teachablemachine.withgoogle.com/models/29h6ZXFNb/"; // 🔥 your link
+
+  const modelURL = URL + "model.json";
+  const metadataURL = URL + "metadata.json";
+
+  model = await tmImage.load(modelURL, metadataURL);
+
+  console.log("✅ Model Loaded Successfully");
 }
 
+// ✅ RUN WHEN PAGE LOADS
+window.onload = function () {
+  loadModel();
+};
+
+// ✅ PREDICT FUNCTION
 async function predict() {
 
   if (!model) {
-    alert("Model not loaded yet, wait few seconds");
+    alert("Model still loading... wait 5 seconds");
     return;
   }
 
   const file = document.getElementById("imageUpload").files[0];
 
   if (!file) {
-    alert("Please upload image");
+    alert("Upload image first");
     return;
   }
 
@@ -44,8 +39,6 @@ async function predict() {
   await img.decode();
 
   const prediction = await model.predict(img);
-
-  console.log(prediction); // 🔥 check in console
 
   let highest = prediction[0];
 
@@ -57,7 +50,9 @@ async function predict() {
 
   showResult(highest.className);
 }
-  function showResult(disease) {
+
+// ✅ RESULT + SOLUTION
+function showResult(disease) {
 
   let solution = "";
 
@@ -65,7 +60,7 @@ async function predict() {
     solution = "Use Copper fungicide";
   }
   else if (disease.includes("Early_blight")) {
-    solution = "Use Mancozeb spray";
+    solution = "Use Mancozeb";
   }
   else if (disease.includes("Late_blight")) {
     solution = "Use Metalaxyl";
@@ -74,10 +69,10 @@ async function predict() {
     solution = "Use Neem oil";
   }
   else if (disease.includes("Spider_mites")) {
-    solution = "Use insecticide spray";
+    solution = "Use insecticide";
   }
   else if (disease.includes("Target_Spot")) {
-    solution = "Use fungicide";
+    solution = "Use fungicide spray";
   }
   else if (disease.includes("Yellow_Leaf_Curl")) {
     solution = "Control whiteflies";
@@ -89,9 +84,4 @@ async function predict() {
   document.getElementById("result").innerHTML =
     "🌿 Disease: " + disease + "<br>💊 Solution: " + solution;
 }
-
-loadModel();
 </script>
-
-</body>
-</html>
