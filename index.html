@@ -1,57 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Crop Scanner</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background-color: white; padding: 20px; margin: 0; }
-        .container { border: 1px solid #ddd; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        #preview { width: 100%; max-width: 300px; border-radius: 8px; display: none; margin: 15px auto; }
-        button { background-color: #2e7d32; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #result { margin-top: 20px; font-weight: bold; color: #333; font-size: 18px; line-height: 1.5; white-space: pre-wrap; }
-        .status-msg { color: #f57c00; margin-bottom: 10px; font-weight: 500; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: white; }
+        .box { border: 2px solid #4CAF50; border-radius: 15px; padding: 20px; max-width: 400px; margin: auto; }
+        #preview { width: 100%; border-radius: 10px; margin-top: 10px; display: none; }
+        button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; }
+        button:disabled { background: #ccc; }
+        #result { margin-top: 20px; font-weight: bold; color: #2e7d32; font-size: 18px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="status" class="status-msg">⏳ Initializing AI Model...</div>
-    <input type="file" id="imageUpload" accept="image/*" style="margin-bottom: 15px;" disabled>
-    <img id="preview" src="#" alt="Preview">
+<div class="box">
+    <h3 id="status" style="color: #f57c00;">⏳ Connecting to AI Model...</h3>
+    <input type="file" id="imageUpload" accept="image/*" disabled>
+    <img id="preview" src="">
+    <br><br>
     <button id="predictBtn" onclick="predict()" disabled>Scan Crop</button>
     <div id="result"></div>
 </div>
 
 <script>
     let model;
-    // This is the link from your Teachable Machine screenshot
+    // URL must end with a forward slash /
     const URL = "https://teachablemachine.withgoogle.com/models/G4k3x0Zxd/"; 
 
     async function init() {
         try {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
-            model = await tmImage.load(modelURL, metadataURL);
-            document.getElementById("status").innerText = "✅ AI Ready: Upload a leaf photo";
+            // Loading the model with absolute paths
+            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+            
+            document.getElementById("status").innerText = "✅ AI Ready";
             document.getElementById("status").style.color = "green";
             document.getElementById("imageUpload").disabled = false;
             document.getElementById("predictBtn").disabled = false;
         } catch (e) {
-            document.getElementById("status").innerText = "❌ Load Error. Check internet.";
-            console.error(e);
+            document.getElementById("status").innerText = "❌ AI Load Error - Refresh Page";
+            console.error("Model Load Failed:", e);
         }
     }
 
     document.getElementById("imageUpload").onchange = function(e) {
         const reader = new FileReader();
         reader.onload = function() {
-            const preview = document.getElementById("preview");
-            preview.src = reader.result;
-            preview.style.display = "block";
+            const img = document.getElementById("preview");
+            img.src = reader.result;
+            img.style.display = "block";
         }
         reader.readAsDataURL(e.target.files[0]);
     }
@@ -60,24 +58,11 @@
         const img = document.getElementById("preview");
         const prediction = await model.predict(img);
         
-        let bestMatch = { className: "", probability: 0 };
-        prediction.forEach(p => {
-            if (p.probability > bestMatch.probability) bestMatch = p;
-        });
+        let best = { className: "", probability: 0 };
+        prediction.forEach(p => { if(p.probability > best.probability) best = p; });
 
-        let output = "Diagnosis: " + bestMatch.className + "\nConfidence: " + (bestMatch.probability * 100).toFixed(1) + "%";
-        
-        // Quick Treatment Guide
-        const label = bestMatch.className.toLowerCase();
-        if (label.includes("disease")) {
-            output += "\n\n💊 Treatment: Apply Copper Fungicide or Mancozeb.";
-        } else if (label.includes("pest")) {
-            output += "\n\n💊 Treatment: Use Neem Oil or Miticide.";
-        } else if (label.includes("healthy")) {
-            output += "\n\n✨ Plant is healthy!";
-        }
-
-        document.getElementById("result").innerText = output;
+        document.getElementById("result").innerText = 
+            "Diagnosis: " + best.className + " (" + (best.probability * 100).toFixed(1) + "%)";
     }
 
     init();
