@@ -1,23 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crop Disease Detection</title>
+
+    <!-- REQUIRED LIBRARIES -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+</head>
+
+<body>
+
+<h2>🌿 Crop Disease Detection</h2>
+
+<input type="file" id="imageUpload" accept="image/*"><br><br>
+
+<button onclick="predict()">Detect Disease</button>
+
+<h3 id="result"></h3>
+
 <script>
 let model;
 
-const URL = "https://teachablemachine.withgoogle.com/models/G4k3xOZxd/";
-
+// ✅ LOAD MODEL FROM LOCAL FILES (GitHub)
 async function loadModel() {
     try {
-        model = await tmImage.load(URL + "model.json", URL + "metadata.json");
-        console.log("Model Loaded Successfully");
+        model = await tmImage.load("model.json", "metadata.json");
+        console.log("✅ Model Loaded Successfully");
     } catch (error) {
-        alert("Model failed to load. Check internet or link.");
+        alert("❌ Model failed to load");
         console.error(error);
     }
 }
 
+// Load model when page opens
 loadModel();
 
 async function predict() {
     if (!model) {
-        alert("Model still loading...");
+        alert("⏳ Model still loading...");
         return;
     }
 
@@ -25,7 +45,7 @@ async function predict() {
     const file = fileInput.files[0];
 
     if (!file) {
-        alert("Please upload image");
+        alert("⚠️ Please upload image");
         return;
     }
 
@@ -33,6 +53,7 @@ async function predict() {
     img.src = URL.createObjectURL(file);
 
     img.onload = async function () {
+
         const prediction = await model.predict(img);
 
         let result = "";
@@ -45,8 +66,30 @@ async function predict() {
             }
         }
 
-        document.getElementById("result").innerText = 
-            "Prediction: " + result + " (" + (maxProb * 100).toFixed(2) + "%)";
+        // 🌿 RESULT DISPLAY
+        let output = "Prediction: " + result + " (" + (maxProb * 100).toFixed(2) + "%)";
+
+        // 💊 EXTRA: PESTICIDE SUGGESTION
+        if (result.toLowerCase().includes("spot")) {
+            output += "\n💊 Use: Copper Fungicide";
+        }
+        else if (result.toLowerCase().includes("blight")) {
+            output += "\n💊 Use: Mancozeb";
+        }
+        else if (result.toLowerCase().includes("virus")) {
+            output += "\n💊 Remove infected plants";
+        }
+        else if (result.toLowerCase().includes("mites")) {
+            output += "\n💊 Use: Neem Oil Spray";
+        }
+        else if (result.toLowerCase().includes("healthy")) {
+            output += "\n✅ Plant is Healthy";
+        }
+
+        document.getElementById("result").innerText = output;
     };
 }
 </script>
+
+</body>
+</html>
