@@ -25,10 +25,16 @@ async function loadModel() {
 }
 
 async function predict() {
+
+  if (!model) {
+    alert("Model not loaded yet, wait few seconds");
+    return;
+  }
+
   const file = document.getElementById("imageUpload").files[0];
 
   if (!file) {
-    alert("Upload image first");
+    alert("Please upload image");
     return;
   }
 
@@ -39,6 +45,8 @@ async function predict() {
 
   const prediction = await model.predict(img);
 
+  console.log(prediction); // 🔥 check in console
+
   let highest = prediction[0];
 
   for (let i = 1; i < prediction.length; i++) {
@@ -47,8 +55,39 @@ async function predict() {
     }
   }
 
-  document.getElementById("result").innerText =
-    "Result: " + highest.className;
+  showResult(highest.className);
+}
+  function showResult(disease) {
+
+  let solution = "";
+
+  if (disease.includes("Bacterial_spot")) {
+    solution = "Use Copper fungicide";
+  }
+  else if (disease.includes("Early_blight")) {
+    solution = "Use Mancozeb spray";
+  }
+  else if (disease.includes("Late_blight")) {
+    solution = "Use Metalaxyl";
+  }
+  else if (disease.includes("Leaf_Mold")) {
+    solution = "Use Neem oil";
+  }
+  else if (disease.includes("Spider_mites")) {
+    solution = "Use insecticide spray";
+  }
+  else if (disease.includes("Target_Spot")) {
+    solution = "Use fungicide";
+  }
+  else if (disease.includes("Yellow_Leaf_Curl")) {
+    solution = "Control whiteflies";
+  }
+  else if (disease.includes("healthy")) {
+    solution = "Plant is healthy ✅";
+  }
+
+  document.getElementById("result").innerHTML =
+    "🌿 Disease: " + disease + "<br>💊 Solution: " + solution;
 }
 
 loadModel();
