@@ -6,41 +6,38 @@
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background: white; }
-        .box { border: 2px solid #4CAF50; border-radius: 15px; padding: 20px; max-width: 400px; margin: auto; }
+        .box { border: 2px solid #4CAF50; border-radius: 15px; padding: 20px; max-width: 400px; margin: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         #preview { width: 100%; border-radius: 10px; margin-top: 10px; display: none; }
-        button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; }
+        button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
         button:disabled { background: #ccc; }
-        #result { margin-top: 20px; font-weight: bold; color: #2e7d32; font-size: 18px; }
+        #result { margin-top: 20px; font-weight: bold; color: #2e7d32; font-size: 18px; white-space: pre-wrap; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h3 id="status" style="color: #f57c00;">⏳ Connecting to AI Model...</h3>
+    <h3 id="status" style="color: #f57c00;">⏳ Loading Local AI Model...</h3>
     <input type="file" id="imageUpload" accept="image/*" disabled>
     <img id="preview" src="">
-    <br><br>
     <button id="predictBtn" onclick="predict()" disabled>Scan Crop</button>
     <div id="result"></div>
 </div>
 
 <script>
     let model;
-    // URL must end with a forward slash /
-    const URL = "https://teachablemachine.withgoogle.com/models/G4k3x0Zxd/"; 
 
     async function init() {
         try {
-            // Loading the model with absolute paths
-            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+            // This now loads the files directly from your GitHub folder
+            model = await tmImage.load("model.json", "metadata.json");
             
             document.getElementById("status").innerText = "✅ AI Ready";
             document.getElementById("status").style.color = "green";
             document.getElementById("imageUpload").disabled = false;
             document.getElementById("predictBtn").disabled = false;
         } catch (e) {
-            document.getElementById("status").innerText = "❌ AI Load Error - Refresh Page";
-            console.error("Model Load Failed:", e);
+            document.getElementById("status").innerText = "❌ Error: Files not found in GitHub";
+            console.error(e);
         }
     }
 
@@ -62,7 +59,7 @@
         prediction.forEach(p => { if(p.probability > best.probability) best = p; });
 
         document.getElementById("result").innerText = 
-            "Diagnosis: " + best.className + " (" + (best.probability * 100).toFixed(1) + "%)";
+            "Diagnosis: " + best.className + "\nConfidence: " + (best.probability * 100).toFixed(1) + "%";
     }
 
     init();
