@@ -1,28 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Crop Disease Detection</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+</head>
+
+<body>
+
+<h2>🌿 Crop Disease Detection</h2>
+
+<input type="file" id="imageUpload"><br><br>
+
+<button onclick="predict()">Detect Disease</button>
+
+<p id="result"></p>
+
 <script>
+
 let model;
 
-// ✅ LOAD MODEL
 async function loadModel() {
-  const URL = "https://teachablemachine.withgoogle.com/models/29h6ZXFNb/"; // 🔥 your link
+  const URL = "https://teachablemachine.withgoogle.com/models/29h6ZXFNb/";
 
   const modelURL = URL + "model.json";
   const metadataURL = URL + "metadata.json";
 
   model = await tmImage.load(modelURL, metadataURL);
 
-  console.log("✅ Model Loaded Successfully");
+  console.log("✅ Model Loaded");
 }
 
-// ✅ RUN WHEN PAGE LOADS
-window.onload = function () {
-  loadModel();
-};
+window.onload = loadModel;
 
-// ✅ PREDICT FUNCTION
 async function predict() {
 
   if (!model) {
-    alert("Model still loading... wait 5 seconds");
+    alert("Model loading... wait 5 seconds");
     return;
   }
 
@@ -48,40 +63,12 @@ async function predict() {
     }
   }
 
-  showResult(highest.className);
-}
-
-// ✅ RESULT + SOLUTION
-function showResult(disease) {
-
-  let solution = "";
-
-  if (disease.includes("Bacterial_spot")) {
-    solution = "Use Copper fungicide";
-  }
-  else if (disease.includes("Early_blight")) {
-    solution = "Use Mancozeb";
-  }
-  else if (disease.includes("Late_blight")) {
-    solution = "Use Metalaxyl";
-  }
-  else if (disease.includes("Leaf_Mold")) {
-    solution = "Use Neem oil";
-  }
-  else if (disease.includes("Spider_mites")) {
-    solution = "Use insecticide";
-  }
-  else if (disease.includes("Target_Spot")) {
-    solution = "Use fungicide spray";
-  }
-  else if (disease.includes("Yellow_Leaf_Curl")) {
-    solution = "Control whiteflies";
-  }
-  else if (disease.includes("healthy")) {
-    solution = "Plant is healthy ✅";
-  }
-
   document.getElementById("result").innerHTML =
-    "🌿 Disease: " + disease + "<br>💊 Solution: " + solution;
+    "🌿 Disease: " + highest.className;
+
 }
+
 </script>
+
+</body>
+</html>
