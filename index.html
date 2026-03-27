@@ -3,6 +3,7 @@
 <head>
   <title>Crop Disease Detection</title>
 
+  <!-- REQUIRED LIBRARIES -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
 </head>
@@ -20,24 +21,31 @@
 <script>
 
 let model;
+const URL = "https://teachablemachine.withgoogle.com/models/G4k3x0Zxd/"; // your model
 
+// LOAD MODEL
 async function loadModel() {
-  const URL = "https://teachablemachine.withgoogle.com/models/G4k3x0Zxd/";
+  try {
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
 
-  const modelURL = URL + "model.json";
-  const metadataURL = URL + "metadata.json";
+    model = await tmImage.load(modelURL, metadataURL);
 
-  model = await tmImage.load(modelURL, metadataURL);
-
-  console.log("✅ Model Loaded");
+    console.log("✅ Model Loaded Successfully");
+  } catch (error) {
+    console.error("❌ Model load error:", error);
+    alert("Model failed to load. Check internet or link.");
+  }
 }
 
+// RUN WHEN PAGE LOADS
 window.onload = loadModel;
 
+// PREDICT
 async function predict() {
 
   if (!model) {
-    alert("Model loading... wait 5 seconds");
+    alert("Still loading model... please wait");
     return;
   }
 
@@ -65,7 +73,6 @@ async function predict() {
 
   document.getElementById("result").innerHTML =
     "🌿 Disease: " + highest.className;
-
 }
 
 </script>
