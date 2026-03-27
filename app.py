@@ -11,7 +11,7 @@ st.title("🌿 SmartAgri: AI Disease Scanner")
 # Function to load the Teachable Machine model
 @st.cache_resource
 def load_model():
-    # Loads the model.json you exported from Teachable Machine
+    # VERIFY: Ensure these filenames match your renamed GitHub files exactly
     model = tf.keras.models.load_model("model.json", compile=False)
     return model
 
@@ -26,8 +26,8 @@ def control_esp32(state):
 
 # Load model and labels
 model = load_model()
-class_names = ["Healthy", "Disease", "Pest"] # Match these to your TM labels
-
+# VERIFY: These must match the labels from your Teachable Machine project
+class_names = ["Healthy", "Disease", "Pest"]
 # Image Upload UI
 file = st.file_uploader("Upload Leaf Photo", type=["jpg", "png"])
 
