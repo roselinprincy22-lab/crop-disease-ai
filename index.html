@@ -2,92 +2,111 @@
 <html>
 <head>
     <title>Crop Disease Detection</title>
-
-    <!-- REQUIRED LIBRARIES -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <script src="https://cdn.npmmirror.com/package/@teachablemachine/image/0.8.5/dist/teachablemachine-image.min.js"></script>
+    
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f9f9f9; }
+        .container { background: white; padding: 20px; border-radius: 15px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        #result { margin-top: 20px; white-space: pre-wrap; font-weight: bold; color: #2e7d32; }
+        .loading-text { color: #ff9800; font-style: italic; }
+        button { background-color: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        button:disabled { background-color: #ccc; }
+    </style>
 </head>
 
 <body>
 
-<h2>🌿 Crop Disease Detection</h2>
+<div class="container">
+    <h2>🌿 Crop Disease Detection</h2>
+    <p id="status" class="loading-text">⏳ Loading AI Model...</p>
 
-<input type="file" id="imageUpload" accept="image/*"><br><br>
+    <input type="file" id="imageUpload" accept="image/*" disabled><br><br>
+    <button id="predictBtn" onclick="predict()" disabled>Detect Disease</button>
 
-<button onclick="predict()">Detect Disease</button>
-
-<h3 id="result"></h3>
+    <h3 id="result"></h3>
+    <img id="preview" style="max-width: 300px; display: none; margin: 20px auto; border-radius: 10px;">
+</div>
 
 <script>
 let model;
+// YOUR TEACHABLE MACHINE LINK
+const URL = "https://teachablemachine.withgoogle.com/models/G4k3x0Zxd/"; 
 
-// ✅ LOAD MODEL FROM LOCAL FILES (GitHub)
 async function loadModel() {
     try {
-        model = await tmImage.load("model[1].json", "metadata[1].json");
-        console.log("✅ Model Loaded Successfully");
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        // Load the model and metadata
+        model = await tmImage.load(modelURL, metadataURL);
+        
+        // Enable UI elements once loaded
+        document.getElementById("status").innerText = "✅ AI Model Ready";
+        document.getElementById("status").style.color = "green";
+        document.getElementById("imageUpload").disabled = false;
+        document.getElementById("predictBtn").disabled = false;
+        
+        console.log("Model Loaded Successfully");
     } catch (error) {
-        alert("❌ Model failed to load");
+        document.getElementById("status").innerText = "❌ Error loading model. Check internet.";
         console.error(error);
     }
 }
 
-// Load model when page opens
+// Start loading immediately
 loadModel();
 
-async function predict() {
-    if (!model) {
-        alert("⏳ Model still loading...");
-        return;
+// Show image preview when selected
+document.getElementById("imageUpload").onchange = function(evt) {
+    const [file] = this.files;
+    if (file) {
+        const preview = document.getElementById("preview");
+        preview.src = window.URL.createObjectURL(file);
+        preview.style.display = "block";
     }
+}
 
+async function predict() {
     const fileInput = document.getElementById("imageUpload");
     const file = fileInput.files[0];
 
     if (!file) {
-        alert("⚠️ Please upload image");
+        alert("⚠️ Please upload an image first");
         return;
     }
 
-    const img = document.createElement("img");
-    img.src = URL.createObjectURL(file);
+    const img = document.getElementById("preview");
+    const prediction = await model.predict(img);
 
-    img.onload = async function () {
+    let result = "";
+    let maxProb = 0;
 
-        const prediction = await model.predict(img);
-
-        let result = "";
-        let maxProb = 0;
-
-        for (let i = 0; i < prediction.length; i++) {
-            if (prediction[i].probability > maxProb) {
-                maxProb = prediction[i].probability;
-                result = prediction[i].className;
-            }
+    for (let i = 0; i < prediction.length; i++) {
+        if (prediction[i].probability > maxProb) {
+            maxProb = prediction[i].probability;
+            result = prediction[i].className;
         }
+    }
 
-        // 🌿 RESULT DISPLAY
-        let output = "Prediction: " + result + " (" + (maxProb * 100).toFixed(2) + "%)";
+    // 🌿 FORMATTING THE OUTPUT
+    let output = "Result: " + result + " (" + (maxProb * 100).toFixed(1) + "%)\n";
 
-        // 💊 EXTRA: PESTICIDE SUGGESTION
-        if (result.toLowerCase().includes("spot")) {
-            output += "\n💊 Use: Copper Fungicide";
-        }
-        else if (result.toLowerCase().includes("blight")) {
-            output += "\n💊 Use: Mancozeb";
-        }
-        else if (result.toLowerCase().includes("virus")) {
-            output += "\n💊 Remove infected plants";
-        }
-        else if (result.toLowerCase().includes("mites")) {
-            output += "\n💊 Use: Neem Oil Spray";
-        }
-        else if (result.toLowerCase().includes("healthy")) {
-            output += "\n✅ Plant is Healthy";
-        }
+    // 💊 PESTICIDE LOGIC
+    const diagnosis = result.toLowerCase();
+    if (diagnosis.includes("spot")) {
+        output += "💊 Recommendation: Use Copper Fungicide";
+    } else if (diagnosis.includes("blight")) {
+        output += "💊 Recommendation: Apply Mancozeb or Chlorothalonil";
+    } else if (diagnosis.includes("virus") || diagnosis.includes("mosaic")) {
+        output += "⚠️ Warning: Viral infection. Remove & destroy infected plants.";
+    } else if (diagnosis.includes("pest") || diagnosis.includes("mites")) {
+        output += "💊 Recommendation: Apply Neem Oil or Miticide spray.";
+    } else if (diagnosis.includes("healthy")) {
+        output += "✨ Excellent! Your plant looks healthy.";
+    }
 
-        document.getElementById("result").innerText = output;
-    };
+    document.getElementById("result").innerText = output;
 }
 </script>
 
