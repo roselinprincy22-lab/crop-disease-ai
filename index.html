@@ -24,7 +24,7 @@ let model;
 // ✅ LOAD MODEL FROM LOCAL FILES (GitHub)
 async function loadModel() {
     try {
-        model = await tmImage.load("model.json", "metadata.json");
+        model = await tmImage.load("model[1].json", "metadata[1].json");
         console.log("✅ Model Loaded Successfully");
     } catch (error) {
         alert("❌ Model failed to load");
