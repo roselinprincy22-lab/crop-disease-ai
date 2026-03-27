@@ -17,7 +17,7 @@ def load_model():
 
 # Function to send signal to ESP32
 def control_esp32(state):
-    esp32_url = "http://192.168.1.XX" # Replace with your ESP32 IP address
+    esp32_url = "http://http://10.145.234.191:5000/predict" # Replace with your ESP32 IP address
     try:
         requests.get(f"{esp32_url}/{state}", timeout=2)
         st.sidebar.success(f"ESP32 Status: {state.upper()} sent")
