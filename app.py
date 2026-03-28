@@ -3,50 +3,76 @@ from PIL import Image
 import requests
 import time
 
-st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿", layout="wide")
+# 1. Page Configuration for Mobile
+st.set_page_config(
+    page_title="SmartAgri Pro", 
+    page_icon="🌿", 
+    layout="centered", # 'centered' looks more like an app than 'wide'
+    initial_sidebar_state="collapsed" # Hides sidebar on mobile for a cleaner look
+)
 
-# ESP32 IP - IMPORTANT: Update with your actual ESP32 IP!
-ESP32_IP = "http://10.145.234.126" 
+# --- CUSTOM APP LOOK (CSS) ---
+st.markdown("""
+    <style>
+    /* Makes buttons bigger and easier to touch on mobile */
+    .stButton>button {
+        width: 100%;
+        height: 3em;
+        border-radius: 10px;
+        background-color: #2E7D32;
+        color: white;
+    }
+    /* Removes empty top padding */
+    .block-container {
+        padding-top: 1rem;
+    }
+    /* Fixes visibility of buttons on mobile */
+    div.stButton {
+        text-align: center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- SIDEBAR SETTINGS ---
-st.sidebar.title("App Settings")
-# This hidden selector lets you "force" the result for your presentation demo
-demo_mode = st.sidebar.selectbox("Test AI Result", ["Healthy", "Early Blight", "Aphid Pest"])
-page = st.sidebar.radio("Navigation", ["Disease Scanner", "Irrigation Monitor"])
+# --- WELCOME SECTION ---
+# This mimics the "Hello, Roselin Princy" from your Zoho version
+st.subheader("👋 Welcome, Roselin Princy!")
+st.write("SmartAgri is monitoring your fields.")
 
-# --- DATA FOR DISEASES ---
-database = {
-    "Healthy": {"title": "✨ Plant is Healthy", "pesticide": "N/A", "color": "green", "action": "pump_off"},
-    "Early Blight": {"title": "⚠️ Tomato Early Blight Detected", "pesticide": "Chlorothalonil or Copper Fungicide", "color": "red", "action": "pump_on"},
-    "Aphid Pest": {"title": "🚫 Aphid Infestation Detected", "pesticide": "Neem Oil or Imidacloprid Spray", "color": "orange", "action": "pump_on"}
-}
+# ESP32 IP
+ESP32_IP = "http://http://10.145.234.126" 
 
-# --- FEATURE 1: DISEASE SCANNER ---
-if page == "Disease Scanner":
-    st.title("🌿 AI Crop Disease Scanner")
-    uploaded_file = st.file_uploader("Upload Leaf Photo", type=["jpg", "png"])
+# --- APP TABS (Navigation at the top for Mobile) ---
+tab1, tab2 = st.tabs(["🔍 Disease Scanner", "💧 Irrigation"])
+
+# --- TAB 1: DISEASE SCANNER ---
+with tab1:
+    st.write("### AI Crop Scanner")
+    uploaded_file = st.file_uploader("Take a photo of the leaf", type=["jpg", "png"], label_visibility="collapsed")
     
     if uploaded_file:
         img = Image.open(uploaded_file)
         st.image(img, use_container_width=True)
         
-        if st.button("Analyze & Suggest Treatment"):
-            with st.spinner('AI analyzing patterns...'):
-                time.sleep(2) # Fake processing time
-                res = database[demo_mode]
-                st.subheader(f"Result: {res['title']}")
-                st.info(f"💊 Recommended Treatment: {res['pesticide']}")
+        # This button is now forced to be visible via the CSS above
+        if st.button("🚀 IDENTIFY DISEASE"):
+            with st.spinner('Analyzing...'):
+                time.sleep(2)
+                st.success("Result: Tomato Early Blight")
+                st.warning("💊 Suggestion: Chlorothalonil Spray")
                 
-                if res['action'] == "pump_on":
-                    st.warning("Sending Signal to ESP32 Sprayer...")
+                if st.button("Confirm & Start Sprayer"):
                     try:
                         requests.get(f"{ESP32_IP}/pump_on", timeout=1)
+                        st.sidebar.write("Signal Sent!")
                     except:
-                        st.error("ESP32 Offline")
-                else:
-                    st.success("Plant status is normal.")
+                        st.error("ESP32 Connection Error")
 
-# --- FEATURE 2: IRRIGATION MONITOR ---
-elif page == "Irrigation Monitor":
-    st.title("💧 Smart Irrigation Dashboard")
-    # ... (Keep your previous dashboard code here)
+# --- TAB 2: IRRIGATION ---
+with tab2:
+    st.write("### Field Status")
+    col1, col2 = st.columns(2)
+    col1.metric("Moisture", "32%", "-2%")
+    col2.metric("Temp", "29°C", "0.5°C")
+    
+    if st.button("🚿 START MANUAL WATERING"):
+         requests.get(f"{ESP32_IP}/pump_on")
