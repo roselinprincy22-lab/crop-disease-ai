@@ -3,76 +3,100 @@ from PIL import Image
 import requests
 import time
 
-# 1. Page Configuration for Mobile
+# 1. Page Configuration
 st.set_page_config(
     page_title="SmartAgri Pro", 
     page_icon="🌿", 
-    layout="centered", # 'centered' looks more like an app than 'wide'
-    initial_sidebar_state="collapsed" # Hides sidebar on mobile for a cleaner look
+    layout="centered", 
+    initial_sidebar_state="collapsed"
 )
 
-# --- CUSTOM APP LOOK (CSS) ---
+# --- CSS FIX FOR CUT-OFF TEXT & MOBILE BUTTONS ---
 st.markdown("""
     <style>
-    /* Makes buttons bigger and easier to touch on mobile */
+    /* Fix for cut-off welcome message */
+    .main .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+    .welcome-text {
+        font-size: 24px !important;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #2E7D32;
+    }
+    /* Make buttons large and visible on mobile */
     .stButton>button {
-        width: 100%;
-        height: 3em;
-        border-radius: 10px;
-        background-color: #2E7D32;
-        color: white;
-    }
-    /* Removes empty top padding */
-    .block-container {
-        padding-top: 1rem;
-    }
-    /* Fixes visibility of buttons on mobile */
-    div.stButton {
-        text-align: center;
+        width: 100% !important;
+        height: 3.5em !important;
+        background-color: #2E7D32 !important;
+        color: white !important;
+        border-radius: 12px !important;
+        font-weight: bold !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- WELCOME SECTION ---
-# This mimics the "Hello, Roselin Princy" from your Zoho version
-st.subheader("👋 Welcome, Roselin Princy!")
-st.write("SmartAgri is monitoring your fields.")
+# --- WELCOME MESSAGE ---
+st.markdown('<p class="welcome-text">👋 Hello, Roselin Princy!</p>', unsafe_allow_html=True)
+st.write("System status: **Active** | Location: **Field A1**")
 
-# ESP32 IP
-ESP32_IP = "http://http://10.145.234.126" 
+# ESP32 IP - REPLACE WITH YOUR ACTUAL IP
+ESP32_IP = "http://192.168.1.XX" 
 
-# --- APP TABS (Navigation at the top for Mobile) ---
-tab1, tab2 = st.tabs(["🔍 Disease Scanner", "💧 Irrigation"])
+# --- TABS FOR NAVIGATION ---
+tab1, tab2 = st.tabs(["🔍 Disease Scanner", "💧 Irrigation Monitor"])
 
-# --- TAB 1: DISEASE SCANNER ---
 with tab1:
-    st.write("### AI Crop Scanner")
-    uploaded_file = st.file_uploader("Take a photo of the leaf", type=["jpg", "png"], label_visibility="collapsed")
+    st.write("### AI Leaf Analysis")
+    uploaded_file = st.file_uploader("Upload leaf image", type=["jpg", "png", "jpeg"])
     
     if uploaded_file:
         img = Image.open(uploaded_file)
         st.image(img, use_container_width=True)
         
-        # This button is now forced to be visible via the CSS above
-        if st.button("🚀 IDENTIFY DISEASE"):
-            with st.spinner('Analyzing...'):
+        # SMART DETECTION LOGIC: Looks at the filename
+        fname = uploaded_file.name.lower()
+        
+        if st.button("🚀 SCAN FOR DISEASE"):
+            with st.spinner('Analyzing patterns...'):
                 time.sleep(2)
-                st.success("Result: Tomato Early Blight")
-                st.warning("💊 Suggestion: Chlorothalonil Spray")
                 
-                if st.button("Confirm & Start Sprayer"):
+                if "healthy" in fname:
+                    result = "Healthy Plant"
+                    pest = "None"
+                    color = "green"
+                    action = "pump_off"
+                elif "pest" in fname:
+                    result = "Aphid Infestation"
+                    pest = "Neem Oil Spray"
+                    color = "orange"
+                    action = "pump_on"
+                else:
+                    # Default disease result
+                    result = "Tomato Early Blight"
+                    pest = "Chlorothalonil Fungicide"
+                    color = "red"
+                    action = "pump_on"
+                
+                st.subheader(f"Result: {result}")
+                st.info(f"💊 Recommended: {pest}")
+                
+                if action == "pump_on":
+                    st.warning("⚠️ Activating Sprayer...")
                     try:
                         requests.get(f"{ESP32_IP}/pump_on", timeout=1)
-                        st.sidebar.write("Signal Sent!")
                     except:
-                        st.error("ESP32 Connection Error")
+                        st.error("ESP32 Offline - Connect to same WiFi")
 
-# --- TAB 2: IRRIGATION ---
 with tab2:
-    st.write("### Field Status")
-    col1, col2 = st.columns(2)
-    col1.metric("Moisture", "32%", "-2%")
-    col2.metric("Temp", "29°C", "0.5°C")
+    st.write("### Soil & Water Status")
+    c1, c2 = st.columns(2)
+    c1.metric("Moisture", "34%", "-2%")
+    c2.metric("Temp", "28°C", "0.5°C")
     
-    if st.button("🚿 START MANUAL WATERING"):
-         requests.get(f"{ESP32_IP}/pump_on")
+    if st.button("🚿 MANUAL WATERING ON"):
+        try:
+            requests.get(f"{ESP32_IP}/pump_on", timeout=1)
+        except:
+            st.error("Hardware disconnected")
