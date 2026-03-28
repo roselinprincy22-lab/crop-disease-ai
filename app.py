@@ -1,93 +1,71 @@
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageStat
 import requests
 import time
 
-# 1. Page Configuration for a Mobile App Look
+# 1. Page Configuration
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿", layout="centered")
 
-# --- CSS FIX: STOP CUT-OFF & STYLE HEADER ---
+# --- CSS FIX: APP LOOK & NO CUT-OFF ---
 st.markdown("""
     <style>
-    /* Adds space at the top so the welcome message isn't cut off */
-    .main .block-container { 
-        padding-top: 3rem !important; 
-    }
-    /* Styles the welcome message */
-    .welcome-header { 
-        font-size: 28px !important; 
-        font-weight: bold; 
-        color: #2E7D32; 
-        margin-bottom: 0px; 
-    }
-    /* Makes buttons large for mobile fingers */
-    .stButton>button { 
-        width: 100%; 
-        height: 3.5em; 
-        background-color: #2E7D32; 
-        color: white; 
-        border-radius: 12px; 
-    }
+    .main .block-container { padding-top: 3.5rem !important; }
+    .welcome-header { font-size: 28px !important; font-weight: bold; color: #2E7D32; }
+    .stButton>button { width: 100%; height: 3.5em; background-color: #2E7D32; color: white; border-radius: 12px; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- WELCOME SECTION ---
 st.markdown('<p class="welcome-header">👋 Hello, Roselin Princy!</p>', unsafe_allow_html=True)
-st.write("Status: **System Online** | Field: **A1**")
 
-# ESP32 IP - UPDATE THIS with your Serial Monitor IP!
-ESP32_IP = "http://http://10.145.234.126" 
+# ESP32 IP - REPLACE WITH YOUR ACTUAL IP
+ESP32_IP = "http://192.168.1.XX" 
 
-# --- SIDEBAR SETTINGS ---
-st.sidebar.title("App Settings")
-# Use this to CHANGE the result from Healthy to Disease for your demo!
-demo_mode = st.sidebar.selectbox("Set AI Result", ["Healthy", "Early Blight", "Aphid Pest"])
-page = st.sidebar.radio("Navigation", ["Disease Scanner", "Irrigation Monitor"])
+tab1, tab2 = st.tabs(["🔍 Disease Scanner", "💧 Irrigation"])
 
-# --- DATA FOR DISEASES ---
-database = {
-    "Healthy": {"title": "✨ Plant is Healthy", "pesticide": "N/A", "action": "pump_off"},
-    "Early Blight": {"title": "⚠️ Tomato Early Blight Detected", "pesticide": "Chlorothalonil Fungicide", "action": "pump_on"},
-    "Aphid Pest": {"title": "🚫 Aphid Infestation Detected", "pesticide": "Neem Oil Spray", "action": "pump_on"}
-}
-
-# --- FEATURE 1: DISEASE SCANNER ---
-if page == "Disease Scanner":
-    st.subheader("🌿 AI Crop Disease Scanner")
-    uploaded_file = st.file_uploader("Upload Leaf Photo", type=["jpg", "png"], label_visibility="collapsed")
+with tab1:
+    st.subheader("AI Auto-Detection")
+    uploaded_file = st.file_uploader("Upload Leaf Photo", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
     
     if uploaded_file:
         img = Image.open(uploaded_file)
         st.image(img, use_container_width=True)
         
-        if st.button("Analyze & Suggest Treatment"):
-            with st.spinner('AI analyzing patterns...'):
+        if st.button("🚀 START AUTOMATIC SCAN"):
+            with st.spinner('Analyzing Leaf Pigmentation...'):
                 time.sleep(2)
-                res = database[demo_mode] # Gets the result you chose in the sidebar
+                
+                # --- AUTO-DETECTION LOGIC (Color Analysis) ---
+                stat = ImageStat.Stat(img)
+                red_channel = stat.mean[0]
+                green_channel = stat.mean[1]
+                
+                # If Green is much higher than Red, it's likely healthy
+                # If Red/Brown tones are high, it's likely diseased
+                if green_channel > (red_channel + 15):
+                    res_title = "✨ Plant is Healthy"
+                    res_pesticide = "None - Keep up the good work!"
+                    res_color = "green"
+                    action = "pump_off"
+                else:
+                    res_title = "⚠️ Tomato Early Blight Detected"
+                    res_pesticide = "Chlorothalonil Fungicide"
+                    res_color = "red"
+                    action = "pump_on"
                 
                 st.divider()
-                st.subheader(f"Result: {res['title']}")
-                st.info(f"💊 Recommended Treatment: {res['pesticide']}")
+                st.subheader(f"Result: {res_title}")
+                st.info(f"💊 Recommended Treatment: {res_pesticide}")
                 
-                if res['action'] == "pump_on":
-                    st.warning("Sending Signal to ESP32 Sprayer...")
+                if action == "pump_on":
+                    st.warning("⚠️ High Risk: Activating ESP32 Sprayer...")
                     try:
                         requests.get(f"{ESP32_IP}/pump_on", timeout=1)
                     except:
-                        st.error("ESP32 Offline. Check WiFi connection.")
-                else:
-                    st.success("Plant status is normal. No action taken.")
+                        st.error("ESP32 Offline - Connect to same WiFi")
 
-# --- FEATURE 2: IRRIGATION MONITOR ---
-elif page == "Irrigation Monitor":
-    st.subheader("💧 Smart Irrigation Dashboard")
-    col1, col2 = st.columns(2)
-    col1.metric("Soil Moisture", "34%", "-2%")
-    col2.metric("Temp", "28°C", "0.5°C")
-    
-    if st.button("🚿 START MANUAL WATERING"):
-        try:
-            requests.get(f"{ESP32_IP}/pump_on", timeout=1)
-            st.success("Pump Activated")
-        except:
-            st.error("Hardware Offline")
+with tab2:
+    st.subheader("Field Status")
+    st.metric("Soil Moisture", "34%", "-2%")
+    if st.button("🚿 MANUAL WATERING"):
+        requests.get(f"{ESP32_IP}/pump_on")
