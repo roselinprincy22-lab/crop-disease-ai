@@ -3,100 +3,62 @@ from PIL import Image
 import requests
 import time
 
-# 1. Page Configuration
-st.set_page_config(
-    page_title="SmartAgri Pro", 
-    page_icon="🌿", 
-    layout="centered", 
-    initial_sidebar_state="collapsed"
-)
+# 1. Page Configuration for a Mobile App Look
+st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿", layout="centered")
 
-# --- CSS FIX FOR CUT-OFF TEXT & MOBILE BUTTONS ---
+# --- CSS FIX: STOP CUT-OFF & STYLE BUTTONS ---
 st.markdown("""
     <style>
-    /* Fix for cut-off welcome message */
-    .main .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 2rem !important;
-    }
-    .welcome-text {
-        font-size: 24px !important;
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #2E7D32;
-    }
-    /* Make buttons large and visible on mobile */
-    .stButton>button {
-        width: 100% !important;
-        height: 3.5em !important;
-        background-color: #2E7D32 !important;
-        color: white !important;
-        border-radius: 12px !important;
-        font-weight: bold !important;
-    }
+    .main .block-container { padding-top: 2rem !important; }
+    .welcome-header { font-size: 26px !important; font-weight: bold; color: #2E7D32; margin-bottom: 0px; }
+    .stButton>button { width: 100%; height: 3.5em; background-color: #2E7D32; color: white; border-radius: 12px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- WELCOME MESSAGE ---
-st.markdown('<p class="welcome-text">👋 Hello, Roselin Princy!</p>', unsafe_allow_html=True)
-st.write("System status: **Active** | Location: **Field A1**")
+# --- WELCOME SECTION ---
+st.markdown('<p class="welcome-header">👋 Hello, Roselin Princy!</p>', unsafe_allow_html=True)
+st.write("Status: **System Online** | Location: **Field A1**")
 
-# ESP32 IP - REPLACE WITH YOUR ACTUAL IP
+# ESP32 IP - IMPORTANT: Update this with your actual IP!
 ESP32_IP = "http://192.168.1.XX" 
 
-# --- TABS FOR NAVIGATION ---
-tab1, tab2 = st.tabs(["🔍 Disease Scanner", "💧 Irrigation Monitor"])
+# --- APP TABS ---
+tab1, tab2 = st.tabs(["🔍 Disease Scanner", "💧 Irrigation"])
 
 with tab1:
-    st.write("### AI Leaf Analysis")
-    uploaded_file = st.file_uploader("Upload leaf image", type=["jpg", "png", "jpeg"])
+    st.write("### AI Crop Analysis")
+    uploaded_file = st.file_uploader("Upload leaf image", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
     
     if uploaded_file:
         img = Image.open(uploaded_file)
         st.image(img, use_container_width=True)
         
-        # SMART DETECTION LOGIC: Looks at the filename
-        fname = uploaded_file.name.lower()
+        # 🧪 SMART DETECTION LOGIC (Triggered by Filename for Demo)
+        filename = uploaded_file.name.lower()
         
         if st.button("🚀 SCAN FOR DISEASE"):
-            with st.spinner('Analyzing patterns...'):
+            with st.spinner('AI analyzing patterns...'):
                 time.sleep(2)
                 
-                if "healthy" in fname:
-                    result = "Healthy Plant"
-                    pest = "None"
-                    color = "green"
-                    action = "pump_off"
-                elif "pest" in fname:
-                    result = "Aphid Infestation"
-                    pest = "Neem Oil Spray"
-                    color = "orange"
-                    action = "pump_on"
+                # Logic to show DIFFERENT results
+                if "healthy" in filename:
+                    st.success("### Result: Healthy Plant")
+                    st.write("✨ **No treatment required.** Plant is in optimal condition.")
+                    requests.get(f"{ESP32_IP}/pump_off") # Ensure pump stays off
+                elif "pest" in filename:
+                    st.error("### Result: Pest Infestation")
+                    st.warning("💊 **Recommended:** Neem Oil or Imidacloprid Spray")
+                    requests.get(f"{ESP32_IP}/pump_on") # Trigger sprayer
                 else:
-                    # Default disease result
-                    result = "Tomato Early Blight"
-                    pest = "Chlorothalonil Fungicide"
-                    color = "red"
-                    action = "pump_on"
-                
-                st.subheader(f"Result: {result}")
-                st.info(f"💊 Recommended: {pest}")
-                
-                if action == "pump_on":
-                    st.warning("⚠️ Activating Sprayer...")
-                    try:
-                        requests.get(f"{ESP32_IP}/pump_on", timeout=1)
-                    except:
-                        st.error("ESP32 Offline - Connect to same WiFi")
+                    st.error("### Result: Tomato Early Blight")
+                    st.warning("💊 **Recommended:** Chlorothalonil Fungicide")
+                    requests.get(f"{ESP32_IP}/pump_on") # Trigger sprayer
 
 with tab2:
-    st.write("### Soil & Water Status")
+    st.write("### Irrigation Monitoring")
     c1, c2 = st.columns(2)
     c1.metric("Moisture", "34%", "-2%")
     c2.metric("Temp", "28°C", "0.5°C")
     
-    if st.button("🚿 MANUAL WATERING ON"):
-        try:
-            requests.get(f"{ESP32_IP}/pump_on", timeout=1)
-        except:
-            st.error("Hardware disconnected")
+    if st.button("🚿 START MANUAL PUMP"):
+        requests.get(f"{ESP32_IP}/pump_on")
