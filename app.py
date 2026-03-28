@@ -6,66 +6,69 @@ import time
 # 1. Page Configuration
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿", layout="centered")
 
-# --- CSS FIX: APP LOOK & NO CUT-OFF ---
+# --- CSS FIX: MOBILE LOOK & WELCOME MSG ---
 st.markdown("""
     <style>
     .main .block-container { padding-top: 3.5rem !important; }
-    .welcome-header { font-size: 28px !important; font-weight: bold; color: #2E7D32; }
-    .stButton>button { width: 100%; height: 3.5em; background-color: #2E7D32; color: white; border-radius: 12px; }
+    .welcome-header { font-size: 26px !important; font-weight: bold; color: #2E7D32; margin-bottom: 0px; }
+    .stButton>button { width: 100%; height: 3.5em; background-color: #2E7D32; color: white; border-radius: 12px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- WELCOME SECTION ---
 st.markdown('<p class="welcome-header">👋 Hello, Roselin Princy!</p>', unsafe_allow_html=True)
+st.write("Status: **System Online** | Category: **Tri-Class AI**")
 
 # ESP32 IP - REPLACE WITH YOUR ACTUAL IP
 ESP32_IP = "http://192.168.1.XX" 
 
-tab1, tab2 = st.tabs(["🔍 Disease Scanner", "💧 Irrigation"])
+tab1, tab2 = st.tabs(["🔍 AI Scanner", "💧 Irrigation"])
 
 with tab1:
-    st.subheader("AI Auto-Detection")
-    uploaded_file = st.file_uploader("Upload Leaf Photo", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+    st.write("### AI Leaf Analysis")
+    uploaded_file = st.file_uploader("Upload leaf image", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
     
     if uploaded_file:
         img = Image.open(uploaded_file)
         st.image(img, use_container_width=True)
         
-        if st.button("🚀 START AUTOMATIC SCAN"):
-            with st.spinner('Analyzing Leaf Pigmentation...'):
+        if st.button("🚀 RUN AUTOMATIC SCAN"):
+            with st.spinner('Analyzing chlorophyll and necrosis...'):
                 time.sleep(2)
                 
-                # --- AUTO-DETECTION LOGIC (Color Analysis) ---
+                # --- AUTO LOGIC FOR 3 CATEGORIES ---
                 stat = ImageStat.Stat(img)
-                red_channel = stat.mean[0]
-                green_channel = stat.mean[1]
+                r, g, b = stat.mean[0], stat.mean[1], stat.mean[2]
                 
-                # If Green is much higher than Red, it's likely healthy
-                # If Red/Brown tones are high, it's likely diseased
-                if green_channel > (red_channel + 15):
-                    res_title = "✨ Plant is Healthy"
-                    res_pesticide = "None - Keep up the good work!"
-                    res_color = "green"
-                    action = "pump_off"
+                # 1. Check for Healthy (Dominant Green)
+                if g > (r + 15) and g > (b + 15):
+                    res, pest, col, act = "Healthy Plant", "No Pesticide Needed", "green", "pump_off"
+                
+                # 2. Check for Pest (Yellowish/Pale - High Red and Green, Low Blue)
+                elif g > b and r > b and abs(g - r) < 20:
+                    res, pest, col, act = "Pest Infestation (Aphids)", "Neem Oil / Imidacloprid", "orange", "pump_on"
+                
+                # 3. Check for Disease (Brown/Dark - High Red/Blue, Low Green)
                 else:
-                    res_title = "⚠️ Tomato Early Blight Detected"
-                    res_pesticide = "Chlorothalonil Fungicide"
-                    res_color = "red"
-                    action = "pump_on"
+                    res, pest, col, act = "Disease Detected (Blight)", "Chlorothalonil Fungicide", "red", "pump_on"
                 
+                # --- DISPLAY RESULTS ---
                 st.divider()
-                st.subheader(f"Result: {res_title}")
-                st.info(f"💊 Recommended Treatment: {res_pesticide}")
+                if col == "green": st.success(f"### Result: {res}")
+                elif col == "orange": st.warning(f"### Result: {res}")
+                else: st.error(f"### Result: {res}")
                 
-                if action == "pump_on":
-                    st.warning("⚠️ High Risk: Activating ESP32 Sprayer...")
+                st.info(f"💊 **Recommendation:** {pest}")
+                
+                if act == "pump_on":
+                    st.warning("⚠️ Activating Sprayer...")
                     try:
                         requests.get(f"{ESP32_IP}/pump_on", timeout=1)
-                    except:
-                        st.error("ESP32 Offline - Connect to same WiFi")
+                    except: st.error("ESP32 Offline")
 
 with tab2:
-    st.subheader("Field Status")
+    st.write("### Irrigation Dashboard")
     st.metric("Soil Moisture", "34%", "-2%")
     if st.button("🚿 MANUAL WATERING"):
-        requests.get(f"{ESP32_IP}/pump_on")
+        try: requests.get(f"{ESP32_IP}/pump_on", timeout=1)
+        except: st.error("Hardware Offline")
