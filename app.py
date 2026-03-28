@@ -1,74 +1,104 @@
 import streamlit as st
-from PIL import Image, ImageStat
 import requests
-import time
+from PIL import Image
+import io
 
-# 1. Page Configuration
+# --- ⚙️ CONFIGURATION (Update your Private Key here) ---
+# Use the Private API Key starting with cSRH... from your last screenshot
+API_KEY = "cSRHsMa3Pl9RnYyvIIH6" 
+MODEL_ID = "smartagri-jaevm/2"
+ESP32_IP = "http://10.145.234.126" # Replace XX with your ESP32's actual IP
+
+# --- 🎨 PAGE STYLING ---
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿", layout="centered")
 
-# --- CSS FIX: MOBILE LOOK & WELCOME MSG ---
 st.markdown("""
     <style>
-    .main .block-container { padding-top: 3.5rem !important; }
-    .welcome-header { font-size: 26px !important; font-weight: bold; color: #2E7D32; margin-bottom: 0px; }
-    .stButton>button { width: 100%; height: 3.5em; background-color: #2E7D32; color: white; border-radius: 12px; font-weight: bold; }
+    .main { background-color: #f5f7f9; }
+    .stButton>button {
+        width: 100%;
+        border-radius: 12px;
+        height: 3em;
+        background-color: #2E7D32;
+        color: white;
+        font-weight: bold;
+        border: none;
+    }
+    .welcome-text {
+        text-align: center;
+        color: #1B5E20;
+        font-family: 'sans-serif';
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- WELCOME SECTION ---
-st.markdown('<p class="welcome-header">👋 Hello, Roselin Princy!</p>', unsafe_allow_html=True)
-st.write("Status: **System Online** | Category: **Tri-Class AI**")
+# --- 🏠 HEADER ---
+st.markdown("<h1 class='welcome-text'>👋 Hello, Roselin Princy!</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>AI-Powered Plant Health Guardian</p>", unsafe_allow_html=True)
+st.write("---")
 
-# ESP32 IP - REPLACE WITH YOUR ACTUAL IP
-ESP32_IP = "http://192.168.1.XX" 
+# --- 📸 SCANNER SECTION ---
+st.subheader("🔍 Leaf Disease Scanner")
+uploaded_file = st.file_uploader("Choose a leaf photo...", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
-tab1, tab2 = st.tabs(["🔍 AI Scanner", "💧 Irrigation"])
-
-with tab1:
-    st.write("### AI Leaf Analysis")
-    uploaded_file = st.file_uploader("Upload leaf image", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+if uploaded_file is not None:
+    # Display the uploaded image
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Target Leaf", use_container_width=True)
     
-    if uploaded_file:
-        img = Image.open(uploaded_file)
-        st.image(img, use_container_width=True)
-        
-        if st.button("🚀 RUN AUTOMATIC SCAN"):
-            with st.spinner('Analyzing chlorophyll and necrosis...'):
-                time.sleep(2)
-                
-                # --- AUTO LOGIC FOR 3 CATEGORIES ---
-                stat = ImageStat.Stat(img)
-                r, g, b = stat.mean[0], stat.mean[1], stat.mean[2]
-                
-                # 1. Check for Healthy (Dominant Green)
-                if g > (r + 15) and g > (b + 15):
-                    res, pest, col, act = "Healthy Plant", "No Pesticide Needed", "green", "pump_off"
-                
-                # 2. Check for Pest (Yellowish/Pale - High Red and Green, Low Blue)
-                elif g > b and r > b and abs(g - r) < 20:
-                    res, pest, col, act = "Pest Infestation (Aphids)", "Neem Oil / Imidacloprid", "orange", "pump_on"
-                
-                # 3. Check for Disease (Brown/Dark - High Red/Blue, Low Green)
-                else:
-                    res, pest, col, act = "Disease Detected (Blight)", "Chlorothalonil Fungicide", "red", "pump_on"
-                
-                # --- DISPLAY RESULTS ---
-                st.divider()
-                if col == "green": st.success(f"### Result: {res}")
-                elif col == "orange": st.warning(f"### Result: {res}")
-                else: st.error(f"### Result: {res}")
-                
-                st.info(f"💊 **Recommendation:** {pest}")
-                
-                if act == "pump_on":
-                    st.warning("⚠️ Activating Sprayer...")
-                    try:
-                        requests.get(f"{ESP32_IP}/pump_on", timeout=1)
-                    except: st.error("ESP32 Offline")
+    # Analyze Button
+    if st.button("🚀 RUN AI DIAGNOSIS"):
+        with st.spinner("Analyzing dataset of 7,897 images..."):
+            try:
+                # 1. Prepare Image for Roboflow
+                buf = io.BytesIO()
+                image.save(buf, format="JPEG")
+                img_bytes = buf.getvalue()
 
-with tab2:
-    st.write("### Irrigation Dashboard")
-    st.metric("Soil Moisture", "34%", "-2%")
-    if st.button("🚿 MANUAL WATERING"):
-        try: requests.get(f"{ESP32_IP}/pump_on", timeout=1)
-        except: st.error("Hardware Offline")
+                # 2. Call Roboflow Classification API
+                url = f"https://classify.roboflow.com/{MODEL_ID}?api_key={API_KEY}"
+                response = requests.post(url, data=img_bytes, headers={"Content-Type": "application/x-www-form-urlencoded"})
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    prediction = data['top']
+                    confidence = data['predictions'][prediction]['confidence']
+
+                    # 3. Display Results
+                    st.divider()
+                    st.metric(label="Detected Condition", value=prediction)
+                    st.write(f"**Confidence Level:** {confidence:.2%}")
+
+                    # 4. Hardware Logic (ESP32)
+                    if "healthy" in prediction.lower():
+                        st.success("✅ Plant is healthy. No treatment required.")
+                        # requests.get(f"{ESP32_IP}/pump_off", timeout=2) 
+                    else:
+                        st.error(f"🚨 Disease Detected: {prediction}")
+                        st.warning("⚠️ Action: Initiating ESP32 Spraying System...")
+                        # Try to trigger the pump
+                        try:
+                            requests.get(f"{ESP32_IP}/pump_on", timeout=2)
+                            st.info("💧 Pump is now active.")
+                        except:
+                            st.caption("Note: Hardware offline or IP mismatch.")
+                else:
+                    st.error("AI Service Error. Please check your API Key.")
+            
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+# --- 💧 MANUAL OVERRIDE ---
+st.write("---")
+with st.expander("🛠️ Manual Hardware Controls"):
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🚿 Pump ON"):
+            try: requests.get(f"{ESP32_IP}/pump_on")
+            except: st.error("Offline")
+    with col2:
+        if st.button("🛑 Pump OFF"):
+            try: requests.get(f"{ESP32_IP}/pump_off")
+            except: st.error("Offline")
+
+st.caption("SmartAgri System v2.0 | Developed by Roselin Princy")
