@@ -8,7 +8,7 @@ API_KEY = "cSRHsMa3Pl9RnYyvIIH6"
 MODEL_ID = "smartagri-jaevm/2"
 
 # ⚠️ UPDATE THIS WITH YOUR ESP32 IP FROM SERIAL MONITOR
-ESP32_IP = "10.145.234.126"   # 🔥 CHANGE THIS
+ESP32_IP = "http://10.145.234.126"   # 🔥 CHANGE THIS
 
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿")
 
