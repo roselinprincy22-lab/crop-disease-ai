@@ -93,10 +93,31 @@ if uploaded_file:
                 st.write("Check model response format or API key.")
 
 # 🔧 Manual Control
-with st.expander("🛠️ Manual Hardware Controls"):
-    if st.button("🚿 Test Pump ON"):
-        try:
-            requests.get(f"{ESP32_IP}/pump_on", timeout=2)
-            st.success("Pump Activated!")
-        except:
-            st.error("ESP32 not connected")
+
+# 🔴 Replace with your ESP32 IP
+ESP32_IP = "http://10.145.234.126"
+
+st.title("🌱 Smart Agriculture - Sensor Data")
+
+if st.button("📡 Get Sensor Data"):
+    try:
+        res = requests.get(f"{ESP32_IP}/data", timeout=5)
+
+        if res.status_code == 200:
+            data = res.json()
+            soil = data["soil"]
+
+            st.success("Connected to ESP32 ✅")
+            st.metric("Soil Moisture", soil)
+
+            # Condition
+            if soil > 3000:
+                st.warning("🌵 Soil is DRY")
+            else:
+                st.success("💧 Soil is GOOD")
+
+        else:
+            st.error("Server Error")
+
+    except Exception as e:
+        st.error(f"Connection Failed: {e}")
