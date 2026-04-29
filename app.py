@@ -7,6 +7,7 @@ import base64
 # --- 🔑 CREDENTIALS ---
 API_KEY = "cSRHsMa3Pl9RnYyvIIH6"
 MODEL_ID = "smartagri-jaevm/2"
+ESP32_IP = "http://10.145.234.126"
 
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿")
 
@@ -77,17 +78,4 @@ if uploaded_file:
                     st.markdown("### 🩺 Recommended Solution")
                     st.write(solution)
 
-                    # 🚨 Hardware Action
-                    if "healthy" not in prediction_lower:
-                        st.warning("🚨 Disease detected! Activating protection system...")
-                        # requests.get(f"{ESP32_IP}/pump_on", timeout=1)
-                    else:
-                        st.balloons()
-
-                else:
-                    st.error(f"❌ Roboflow Error: {response.status_code}")
-
-            except Exception as e:
-                st.error(f"❌ Processing Error: {e}")
-                st.write("Check model response format or API key.")
-
+                   
