@@ -5,7 +5,7 @@ import io
 import base64
 
 # --- 🔑 CREDENTIALS ---
-API_KEY = "YOUR_API_KEY"
+API_KEY = "cSRHsMa3Pl9RnYyvIIH6"
 MODEL_ID = "smartagri-jaevm/2"
 
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿")
@@ -40,7 +40,7 @@ if uploaded_file:
             image.save(buffered, format="JPEG")
             img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-            url = f"https://classify.roboflow.com/{MODEL_ID}?api_key={API_KEY}"
+            url = f"https://classify.roboflow.com/{smartagri-jaevm/2}?api_key={cSRHsMa3Pl9RnYyvIIH6}"
 
             try:
                 response = requests.post(
