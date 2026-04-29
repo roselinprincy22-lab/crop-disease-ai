@@ -7,7 +7,6 @@ import base64
 # --- 🔑 CREDENTIALS ---
 API_KEY = "cSRHsMa3Pl9RnYyvIIH6"
 MODEL_ID = "smartagri-jaevm/2"
-ESP32_IP = "http://10.145.234.126"
 
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿")
 
@@ -92,11 +91,3 @@ if uploaded_file:
                 st.error(f"❌ Processing Error: {e}")
                 st.write("Check model response format or API key.")
 
-# 🔧 Manual Control
-with st.expander("🛠️ Manual Hardware Controls"):
-    if st.button("🚿 Test Pump ON"):
-        try:
-            requests.get(f"{ESP32_IP}/pump_on", timeout=2)
-            st.success("Pump Activated!")
-        except:
-            st.error("ESP32 not connected")
