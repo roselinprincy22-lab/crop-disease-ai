@@ -5,9 +5,8 @@ import io
 import base64
 
 # --- 🔑 CREDENTIALS ---
-API_KEY = "cSRHsMa3Pl9RnYyvIIH6"
+API_KEY = "YOUR_API_KEY"
 MODEL_ID = "smartagri-jaevm/2"
-ESP32_IP = "http://10.145.234.126"
 
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿")
 
@@ -17,21 +16,13 @@ st.markdown("<p style='text-align: center;'>👋 Hello, Roselin Princy!</p>", un
 # 🌱 Disease Solutions Dictionary
 disease_solutions = {
     "healthy": "✅ Your plant is healthy! Maintain proper watering and sunlight.",
-    
     "bacterial spot": "🦠 Remove infected leaves. Use copper-based fungicide. Avoid overhead watering.",
-    
     "early blight": "🍂 Use fungicide sprays. Remove affected leaves. Maintain soil health.",
-    
     "late blight": "⚠️ Remove infected plants immediately. Apply fungicides. Avoid moisture buildup.",
-    
     "leaf mold": "🌫 Improve air circulation. Reduce humidity. Use fungicide if needed.",
-    
     "septoria leaf spot": "🔬 Remove infected leaves. Avoid wet leaves. Apply fungicide.",
-    
     "spider mites": "🕷 Spray neem oil or insecticidal soap. Keep humidity high.",
-    
     "target spot": "🎯 Use resistant varieties. Apply fungicide. Improve spacing.",
-    
     "yellow leaf curl virus": "🦟 Control whiteflies. Remove infected plants immediately."
 }
 
@@ -61,11 +52,10 @@ if uploaded_file:
                 if response.status_code == 200:
                     data = response.json()
 
-                    # ✅ Correct Parsing
                     prediction = data['predictions'][0]['class']
                     confidence = data['predictions'][0]['confidence']
 
-                    st.success(f"🌱 **Detected:** {prediction}")
+                    st.success(f"🌱 Detected: {prediction}")
                     st.info(f"📊 Confidence: {confidence:.1%}")
 
                     # 🌿 Get Solution
@@ -78,4 +68,14 @@ if uploaded_file:
                     st.markdown("### 🩺 Recommended Solution")
                     st.write(solution)
 
-                   
+                    # 🎉 Healthy case
+                    if "healthy" in prediction_lower:
+                        st.balloons()
+                    else:
+                        st.warning("⚠️ Disease detected! Please follow the solution above.")
+
+                else:
+                    st.error(f"❌ Roboflow Error: {response.status_code}")
+
+            except Exception as e:
+                st.error(f"❌ Processing Error: {e}")
