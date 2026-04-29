@@ -3,7 +3,7 @@ import requests
 from PIL import Image
 
 # --- 🔑 CREDENTIALS ---
-API_KEY = "YOUR_API_KEY"
+API_KEY = "cSRHsMa3Pl9RnYyvIIH6"
 MODEL_ID = "smartagri-jaevm/2"
 
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿")
