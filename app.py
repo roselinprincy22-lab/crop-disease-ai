@@ -40,7 +40,7 @@ if uploaded_file:
             image.save(buffered, format="JPEG")
             img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-            url = f"https://classify.roboflow.com/{smartagri-jaevm/2}?api_key={cSRHsMa3Pl9RnYyvIIH6}"
+            url = f"https://classify.roboflow.com/{MODEL_ID}?api_key={API_KEY}"
 
             try:
                 response = requests.post(
