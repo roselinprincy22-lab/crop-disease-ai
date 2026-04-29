@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 from PIL import Image
+import io
+import base64
 
 # --- 🔑 CREDENTIALS ---
 API_KEY = "cSRHsMa3Pl9RnYyvIIH6"
@@ -8,41 +10,65 @@ MODEL_ID = "smartagri-jaevm/2"
 
 st.set_page_config(page_title="SmartAgri Pro", page_icon="🌿")
 
-st.title("🌿 SmartAgri Pro")
+st.markdown("<h1 style='text-align: center; color: #2E7D32;'>🌿 SmartAgri Pro</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>👋 Hello, Roselin Princy!</p>", unsafe_allow_html=True)
+
+# 🌱 Disease Solutions Dictionary
+disease_solutions = {
+    "healthy": "✅ Your plant is healthy! Maintain proper watering and sunlight.",
+    "bacterial spot": "🦠 Remove infected leaves. Use copper-based fungicide.",
+    "early blight": "🍂 Use fungicide sprays. Remove affected leaves.",
+    "late blight": "⚠️ Remove infected plants immediately. Apply fungicides.",
+    "leaf mold": "🌫 Improve air circulation. Reduce humidity.",
+    "septoria leaf spot": "🔬 Remove infected leaves. Apply fungicide.",
+    "spider mites": "🕷 Spray neem oil or insecticidal soap.",
+    "target spot": "🎯 Use resistant varieties and fungicide.",
+    "yellow leaf curl virus": "🦟 Control whiteflies and remove infected plants."
+}
 
 uploaded_file = st.file_uploader("📤 Upload leaf photo...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
     st.image(image, caption="🌿 Current Scan", use_container_width=True)
-
+    
     if st.button("🚀 RUN AI DIAGNOSIS"):
-        with st.spinner("🤖 AI is analyzing..."):
+        with st.spinner("🤖 AI is analyzing leaf health..."):
+            
+            # Convert image to Base64
+            buffered = io.BytesIO()
+            image.save(buffered, format="JPEG")
+            img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-            url = "https://serverless.roboflow.com/infer/workflows"
+            url = f"https://classify.roboflow.com/{MODEL_ID}?api_key={API_KEY}"
 
             try:
                 response = requests.post(
                     url,
-                    files={"file": uploaded_file},
-                    data={
-                        "api_key": API_KEY,
-                        "model_id": MODEL_ID
-                    }
+                    data=img_str,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"}
                 )
 
-                data = response.json()
-                st.write("DEBUG:", data)  # remove later
+                if response.status_code == 200:
+                    data = response.json()
 
-                if "predictions" in data and len(data["predictions"]) > 0:
-                    prediction = data["predictions"][0]["class"]
-                    confidence = data["predictions"][0]["confidence"]
+                    prediction = data['predictions'][0]['class']
+                    confidence = data['predictions'][0]['confidence']
 
-                    st.success(f"🌱 Detected: {prediction}")
+                    st.success(f"🌱 **Detected:** {prediction}")
                     st.info(f"📊 Confidence: {confidence:.1%}")
 
+                    # 🌿 Solution
+                    solution = disease_solutions.get(
+                        prediction.lower(),
+                        "⚠️ No solution found. Please consult an expert."
+                    )
+
+                    st.markdown("### 🩺 Recommended Solution")
+                    st.write(solution)
+
                 else:
-                    st.warning("⚠️ No predictions found")
+                    st.error(f"❌ Roboflow Error: {response.status_code}")
 
             except Exception as e:
-                st.error(f"❌ Error: {e}")
+                st.error(f"❌ Processing Error: {e}")
